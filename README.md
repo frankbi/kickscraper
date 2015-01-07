@@ -1,0 +1,2 @@
+# kickscraper
+Scraping Kickstarter
