@@ -6,10 +6,6 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from KickUpdates import KickUpdates
-from KickComments import KickComments
-from KickStats import KickStats
-
 import re
 
 from selenium import webdriver

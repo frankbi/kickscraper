@@ -11,7 +11,7 @@ with open("test_pages.csv", "rU") as f:
 		scraper = KickScraper(x[0])
 '''
 
-scraper = KickScraper("https://www.kickstarter.com/projects/692895003/succumb-gender-neutral-self-care-and-sensual-body/")
+scraper = KickScraper("https://www.kickstarter.com/projects/forkingpath/the-doom-that-came-to-atlantic-city/")
 
 with open("stats.json", "w") as outfile:
 	json.dump(scraper.stats.all_data, outfile, sort_keys=True, indent=4)
