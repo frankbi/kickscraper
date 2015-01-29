@@ -17,8 +17,8 @@ class KickScraper:
 
 	def __init__(self, path):
 		self.stats = KickStats(path)
-		self.comments = KickComments(path)
-		self.updates = KickUpdates(path)
+		#self.comments = KickComments(path)
+		#self.updates = KickUpdates(path)
 
 
 class KickUpdates:
@@ -40,6 +40,7 @@ class KickUpdates:
 		return title.a.string
 
 	def get_post_comments_total(self, tree):
+
 		statLine = tree.find("div", attrs={"class":"statline"})
 
 		commentText = str(statLine.find("span", attrs={"class":"comments"}))
@@ -48,6 +49,7 @@ class KickUpdates:
 			return re.search(r'(\d{1,4})', commentText).group()
 		except:
 			return 0
+
 
 	def get_post_likes(self, tree): # ''' simplify '''
 		return tree.find("span", attrs={"class":"count"}).get_text()
@@ -158,6 +160,7 @@ class KickComments:
 			showMoreComments = driver.find_element_by_class_name("older_comments")
 			for x in range(int(numberOfClicksNeeded)):
 				showMoreComments.click()
+				print "clicked #" + str(x)
 				time.sleep(1)
 		except NoSuchElementException:
 			pass
@@ -166,7 +169,8 @@ class KickComments:
 		allCommentsStructure = [self.get_comment_attributes(comment) for comment in allCommentObjects]
 		allComments = []
 
-		for x in allCommentsStructure:
+		for idx, x in enumerate(allCommentsStructure):
+			print "processing #" + str(idx)
 			allComments.append(self.get_comment_content(x))
 
 		driver.close()
@@ -230,6 +234,11 @@ class KickStats:
 
 		return re.search(pattern, soup.get_text()).group()
 
+	def get_duration(self, tree):
+		return int(float(tree.find("span", attrs={"id":"project_duration_data"})["data-duration"]))
+
+	def get_location(self, tree):
+		return (tree.find("a", attrs={"class":"grey-dark mr3 nowrap"})).get_text().strip()
 
 	def get_stats(self, tree, path):
 
@@ -241,5 +250,16 @@ class KickStats:
 			"pledge_goal": self.get_pledge_goal(tree),
 			"num_updates": self.get_num_updates(tree),
 			"num_comments": self.get_num_comments(tree),
-			"status_string": self.get_status(tree)
+			"status_string": self.get_status(tree),
+			"pledge_duration": self.get_duration(tree),
+			"pledge_location": self.get_location(tree)
 		}
+
+
+# dat = KickScraper("https://www.kickstarter.com/projects/prynt/prynt-the-first-instant-camera-case-for-iphone-and/")
+
+# dat = KickScraper("https://www.kickstarter.com/projects/713023302/socrates-the-most-clever-socks-ever/")
+
+# dat = KickScraper("https://www.kickstarter.com/projects/readingrainbow/bring-reading-rainbow-back-for-every-child-everywh/")
+
+# print dat.stats.all_data["location"]

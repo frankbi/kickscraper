@@ -11,13 +11,18 @@ with open("test_pages.csv", "rU") as f:
 		scraper = KickScraper(x[0])
 '''
 
-scraper = KickScraper("https://www.kickstarter.com/projects/forkingpath/the-doom-that-came-to-atlantic-city/")
+scraper = KickScraper("https://www.kickstarter.com/projects/67279121/useless-machine-in-a-can-fun-kit-for-everyone/")
+
+# scraper = KickScraper("https://www.kickstarter.com/projects/713023302/socrates-the-most-clever-socks-ever/")
+
 
 with open("stats.json", "w") as outfile:
 	json.dump(scraper.stats.all_data, outfile, sort_keys=True, indent=4)
 
+'''
 with open("updates.json", "w") as outfile:
 	json.dump(scraper.updates.all_data, outfile, sort_keys=True, indent=4)
 
 with open("comments.json", "w") as outfile:
 	json.dump(scraper.comments.all_data, outfile, sort_keys=True, indent=4)
+'''

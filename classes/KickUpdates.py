@@ -5,6 +5,10 @@ from bs4 import BeautifulSoup
 
 import re
 
+
+
+
+
 class KickUpdates:
 
 	def __init__(self, path):
@@ -82,3 +86,7 @@ class KickUpdates:
 					allUpdates.append(i)
 
 			return allUpdates
+
+
+catz = KickUpdates("https://www.kickstarter.com/projects/1548897071/italian-moms-spreading-their-art-to-every-table")
+print catz.all_data
