@@ -194,8 +194,13 @@ class KickStats:
 	def get_backers_count(self, tree):
 		return int(tree.find("div", attrs={"id":"backers_count"}).get_text().replace(",",""))
 
+	# can be improved
 	def get_project_title(self, tree):
-		return tree.find("title").string
+		return (tree.find("title").string).replace(u"\u2019","'").replace(u"\u2014","-")
+
+	# can be improved
+	def get_description(self, tree):
+		return tree.find("p", attrs={"class":"h3 mb3"}).get_text().replace(u"\n","")
 
 	def get_creator_name(self, tree):
 		return tree.find("a", attrs={"data-modal-class":"modal_project_by"}).get_text()
@@ -204,7 +209,7 @@ class KickStats:
 		pledgeObject = tree.find("div", attrs={"id":"pledged"})
 
 		return {
-			"current_type": pledgeObject.data["data-currency"],
+			"current_type": pledgeObject.data["data-currency"].lower(),
 			"pledge_amount": int(re.sub(r'(\.|,)', "", pledgeObject.get_text().strip()[1:]))
 		}
 
@@ -220,46 +225,72 @@ class KickStats:
 			currency_type = classNames.split(" ")[1]
 
 		return {
-			"currency_type": currency_type,
+			"currency_type": currency_type.lower(),
 			"pledge_goal": pledge_goal
 		}
 
+	def get_duration(self, tree):
+		return int(float(tree.find("span", attrs={"id":"project_duration_data"})["data-duration"]))
 
-	def get_status(self, tree):
+	# can be improved
+	def get_location(self, tree):
+		return (tree.find("a", attrs={"class":"grey-dark mr3 nowrap"})).get_text().strip()
+
+	# can be improved
+	def get_category(self, tree):
+		allOfIt = tree.findAll("a", attrs={"class":"grey-dark mr3 nowrap"})
+		return allOfIt[1].get_text().strip()
+
+	def get_scrape_date(self):
+		return {
+			"time": time.strftime("%l:%M%p %Z"),
+			"date": time.strftime("%b %d %Y")
+		}
+
+
+	# get_status helper
+	def get_status_funding_deadline(self, tree):
 		fundingHTML = tree.find("div", 
 			attrs={"class":"NS_projects__deadline_copy"}).div["data-render"]
-
 		pattern = re.compile(r'(\w{3})\s(\d{2}|\d{1})\s(\d{4})\s(\d{1}|\d{2}):(\d{2})\s(\w{2})\s(\w{3})')
 		soup = BeautifulSoup(re.sub(r'\\n|\\', "", fundingHTML[1:-1]))
 
 		return re.search(pattern, soup.get_text()).group()
 
-	def get_duration(self, tree):
-		return int(float(tree.find("span", attrs={"id":"project_duration_data"})["data-duration"]))
+	# get_status helper
+	def get_status_funding_state(self, tree):
+		if (len(tree.findAll("a", attrs={"id":"button-back-this-proj"}))) > 0:
+			return "funding_open"
+		else:
+			status = tree.find("div", attrs={"class":"border-left-thick"}).h3.get_text()
+			if "funded" in status.lower():
+				return "funding_complete"
+			if "unsuccessful" in status.lower():
+				return "funding_failed"
 
-	def get_location(self, tree):
-		return (tree.find("a", attrs={"class":"grey-dark mr3 nowrap"})).get_text().strip()
+
+	def get_status(self, tree):
+		return {
+			"funding_status": self.get_status_funding_state(tree),
+			"funding_deadline": self.get_status_funding_deadline(tree)
+		}
+
+
 
 	def get_stats(self, tree, path):
 
 		return {
 			"project_title": self.get_project_title(tree),
-			"creator_name": self.get_creator_name(tree),
-			"backers_count": self.get_backers_count(tree),
+			"project_description": self.get_description(tree),
+			"project_category": self.get_category(tree),
+			"pledge_duration": self.get_duration(tree),
+			"pledge_location": self.get_location(tree),
 			"pledge_amount": self.get_pledge_amount(tree),
 			"pledge_goal": self.get_pledge_goal(tree),
+			"creator_name": self.get_creator_name(tree),
 			"num_updates": self.get_num_updates(tree),
 			"num_comments": self.get_num_comments(tree),
-			"status_string": self.get_status(tree),
-			"pledge_duration": self.get_duration(tree),
-			"pledge_location": self.get_location(tree)
+			"backers_count": self.get_backers_count(tree),
+			"scrape_date": self.get_scrape_date(),
+			"status": self.get_status(tree)
 		}
-
-
-# dat = KickScraper("https://www.kickstarter.com/projects/prynt/prynt-the-first-instant-camera-case-for-iphone-and/")
-
-# dat = KickScraper("https://www.kickstarter.com/projects/713023302/socrates-the-most-clever-socks-ever/")
-
-# dat = KickScraper("https://www.kickstarter.com/projects/readingrainbow/bring-reading-rainbow-back-for-every-child-everywh/")
-
-# print dat.stats.all_data["location"]

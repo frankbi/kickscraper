@@ -11,10 +11,11 @@ with open("test_pages.csv", "rU") as f:
 		scraper = KickScraper(x[0])
 '''
 
-scraper = KickScraper("https://www.kickstarter.com/projects/67279121/useless-machine-in-a-can-fun-kit-for-everyone/")
+url = "https://www.kickstarter.com/projects/597507018/pebble-e-paper-watch-for-iphone-and-android/"
 
-# scraper = KickScraper("https://www.kickstarter.com/projects/713023302/socrates-the-most-clever-socks-ever/")
+#url = "https://www.kickstarter.com/projects/597507018/pebble-e-paper-watch-for-iphone-and-android/"
 
+scraper = KickScraper(url)
 
 with open("stats.json", "w") as outfile:
 	json.dump(scraper.stats.all_data, outfile, sort_keys=True, indent=4)
