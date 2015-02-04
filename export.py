@@ -11,7 +11,7 @@ with open("test_pages.csv", "rU") as f:
 		scraper = KickScraper(x[0])
 '''
 
-url = "https://www.kickstarter.com/projects/597507018/pebble-e-paper-watch-for-iphone-and-android/"
+url = "https://www.kickstarter.com/projects/513281940/radio-open-source-kick-off-year-two"
 
 #url = "https://www.kickstarter.com/projects/597507018/pebble-e-paper-watch-for-iphone-and-android/"
 

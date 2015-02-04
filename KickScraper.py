@@ -199,7 +199,7 @@ class KickStats:
 		return (tree.find("title").string).replace(u"\u2019","'").replace(u"\u2014","-")
 
 	# can be improved
-	def get_description(self, tree):
+	def get_short_description(self, tree):
 		return tree.find("p", attrs={"class":"h3 mb3"}).get_text().replace(u"\n","")
 
 	def get_creator_name(self, tree):
@@ -258,7 +258,7 @@ class KickStats:
 		return re.search(pattern, soup.get_text()).group()
 
 	# get_status helper
-	def get_status_funding_state(self, tree):
+	def get_status_funding_status(self, tree):
 		if (len(tree.findAll("a", attrs={"id":"button-back-this-proj"}))) > 0:
 			return "funding_open"
 		else:
@@ -268,11 +268,34 @@ class KickStats:
 			if "unsuccessful" in status.lower():
 				return "funding_failed"
 
+	# get_status helper
+	def get_status_funding_percent(self, tree):
+		raised = self.get_pledge_amount(tree)
+		goal = self.get_pledge_goal(tree)
+		return raised["pledge_amount"] / goal["pledge_goal"]
+		
+
+	# get_full_description_characters helper
+	def count_characters(self, text):
+		return len(text) - text.count(' ')
+
+	def get_full_description_characters(self, tree):
+		description_body = tree.find("div", attrs={"class":"NS_projects__description_section"})
+		column = description_body.find("div", attrs={"class":"col col-8"})
+		sections = column.findAll("div", attrs={"class":"mb6"})
+		total_character_count = 0
+		for sec in sections:
+			num_characters = self.count_characters(sec.get_text().strip())
+			total_character_count = total_character_count + num_characters
+		return total_character_count
+
 
 	def get_status(self, tree):
+
 		return {
-			"funding_status": self.get_status_funding_state(tree),
-			"funding_deadline": self.get_status_funding_deadline(tree)
+			"funding_status": self.get_status_funding_status(tree),
+			"funding_deadline": self.get_status_funding_deadline(tree),
+			"funding_percent": self.get_status_funding_percent(tree)
 		}
 
 
@@ -281,7 +304,7 @@ class KickStats:
 
 		return {
 			"project_title": self.get_project_title(tree),
-			"project_description": self.get_description(tree),
+			"project_short_description": self.get_short_description(tree),
 			"project_category": self.get_category(tree),
 			"pledge_duration": self.get_duration(tree),
 			"pledge_location": self.get_location(tree),
@@ -292,5 +315,6 @@ class KickStats:
 			"num_comments": self.get_num_comments(tree),
 			"backers_count": self.get_backers_count(tree),
 			"scrape_date": self.get_scrape_date(),
-			"status": self.get_status(tree)
+			"status": self.get_status(tree),
+			"product_description_character_count": self.get_full_description_characters(tree)
 		}
