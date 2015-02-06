@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from __future__ import division
+from datetime import datetime
 import time
 
 import requests
@@ -17,9 +18,18 @@ class KickScraper:
 
 	def __init__(self, path):
 		self.stats = KickStats(path)
-		#self.comments = KickComments(path)
-		#self.updates = KickUpdates(path)
+		self.comments = KickComments(path)
+		self.updates = KickUpdates(path)
 
+class KickHelper:
+	
+	def convert_time(self, date):
+		dateFormat = "%Y-%m-%dT%H:%M:%S"
+		time = datetime.strptime(date, dateFormat)
+		return {
+			"date": time.strftime("%m/%d/%Y"),
+			"time": time.strftime("%H:%M:%S")
+		}
 
 class KickUpdates:
 
@@ -33,26 +43,34 @@ class KickUpdates:
 		return (re.search(r"#\d{1,4}", text).group())[1:]
 
 	def get_post_time(self, tree):
-		return tree.find("time")["datetime"]
+		dateString = (tree.find("time")["datetime"])[:-6]
+		return KickHelper().convert_time(dateString)
 
 	def get_post_title(self, tree):
 		title = tree.find("h2", attrs={"class":"normal title"})
-		return title.a.string
+		return (title.a.string).replace(u"\u2019","'").replace(u"\u2014","-")
 
 	def get_post_comments_total(self, tree):
 
 		statLine = tree.find("div", attrs={"class":"statline"})
 
-		commentText = str(statLine.find("span", attrs={"class":"comments"}))
+		commentText = statLine.find("a", attrs={"class":"comments"})
 
-		try:
-			return re.search(r'(\d{1,4})', commentText).group()
-		except:
+		postComments = str(commentText.get_text())
+
+		if postComments.find(" ") is not -1:
+			return int(postComments[:postComments.find(" ")])
+		else:
 			return 0
 
+	def get_post_likes(self, tree):
+		text = tree.find("span", attrs={"class":"count"}).get_text()
 
-	def get_post_likes(self, tree): # ''' simplify '''
-		return tree.find("span", attrs={"class":"count"}).get_text()
+		if text.find(" ") is not -1:
+			return int(text[:text.find(" ")])
+		else:
+			return 0
+
 
 	def get_post_url(self, tree):
 		title = tree.find("h2", attrs={"class":"normal title"})
@@ -88,17 +106,12 @@ class KickUpdates:
 
 		else:
 			allPaginationLinks = []
-
 			[allPaginationLinks.append(link["href"]) for link in paginationLinks.findAll("a")]
-
 			sortedListOfPages = [int(page[page.find("=")+1:]) for page in allPaginationLinks]
-
 			allUpdates = []
-
 			for x in range(1, max(sortedListOfPages) + 1):
 				for i in self.get_update_content(x, path):
 					allUpdates.append(i)
-
 			return allUpdates
 
 
@@ -119,7 +132,8 @@ class KickComments:
 		return "\n".join([p.get_text() for p in tree.findAll("p")])
 
 	def get_comment_date(self, tree):
-		return tree.find("data")["data-value"]
+		dateString = (tree.find("data")["data-value"])[:-6]
+		return KickHelper().convert_time(dateString)
 
 	def get_comment_author(self, tree):
 		return tree.find("a", attrs={"class":"author"}).get_text()
@@ -243,9 +257,11 @@ class KickStats:
 
 	def get_scrape_date(self):
 		return {
-			"time": time.strftime("%l:%M%p %Z"),
-			"date": time.strftime("%b %d %Y")
+			"date": time.strftime("%m/%d/%Y"),
+			"time": time.strftime("%H:%M:%S")
 		}
+
+
 
 
 	# get_status helper
@@ -273,7 +289,6 @@ class KickStats:
 		raised = self.get_pledge_amount(tree)
 		goal = self.get_pledge_goal(tree)
 		return raised["pledge_amount"] / goal["pledge_goal"]
-		
 
 	# get_full_description_characters helper
 	def count_characters(self, text):
@@ -289,19 +304,14 @@ class KickStats:
 			total_character_count = total_character_count + num_characters
 		return total_character_count
 
-
 	def get_status(self, tree):
-
 		return {
 			"funding_status": self.get_status_funding_status(tree),
 			"funding_deadline": self.get_status_funding_deadline(tree),
 			"funding_percent": self.get_status_funding_percent(tree)
 		}
 
-
-
 	def get_stats(self, tree, path):
-
 		return {
 			"project_title": self.get_project_title(tree),
 			"project_short_description": self.get_short_description(tree),
