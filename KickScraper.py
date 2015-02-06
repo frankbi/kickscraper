@@ -21,15 +21,18 @@ class KickScraper:
 		self.comments = KickComments(path)
 		self.updates = KickUpdates(path)
 
+
 class KickHelper:
 	
-	def convert_time(self, date):
+	def convert_time(self, date, zone):
 		dateFormat = "%Y-%m-%dT%H:%M:%S"
 		time = datetime.strptime(date, dateFormat)
 		return {
 			"date": time.strftime("%m/%d/%Y"),
-			"time": time.strftime("%H:%M:%S")
+			"time": time.strftime("%H:%M:%S"),
+			"zone": zone.replace(":","")
 		}
+
 
 class KickUpdates:
 
@@ -43,34 +46,35 @@ class KickUpdates:
 		return (re.search(r"#\d{1,4}", text).group())[1:]
 
 	def get_post_time(self, tree):
-		dateString = (tree.find("time")["datetime"])[:-6]
-		return KickHelper().convert_time(dateString)
+		dateString = tree.find("time")["datetime"]
+		return KickHelper().convert_time(dateString[:-6], dateString[-6:])
 
 	def get_post_title(self, tree):
 		title = tree.find("h2", attrs={"class":"normal title"})
 		return (title.a.string).replace(u"\u2019","'").replace(u"\u2014","-")
 
 	def get_post_comments_total(self, tree):
-
 		statLine = tree.find("div", attrs={"class":"statline"})
-
 		commentText = statLine.find("a", attrs={"class":"comments"})
-
-		postComments = str(commentText.get_text())
-
-		if postComments.find(" ") is not -1:
-			return int(postComments[:postComments.find(" ")])
-		else:
-			return 0
+		try:
+			postComments = str(commentText.get_text())
+			if postComments.find(" ") is not -1:
+				return int(postComments[:postComments.find(" ")])
+			else:
+				return 0
+		except:
+			'''
+			idk
+			/1507621537/tlc-is-back-to-make-our-final-album-with-you/
+			'''
+			print commentText
 
 	def get_post_likes(self, tree):
 		text = tree.find("span", attrs={"class":"count"}).get_text()
-
 		if text.find(" ") is not -1:
 			return int(text[:text.find(" ")])
 		else:
 			return 0
-
 
 	def get_post_url(self, tree):
 		title = tree.find("h2", attrs={"class":"normal title"})
@@ -78,15 +82,10 @@ class KickUpdates:
 
 	def get_update_content(self, pageNum, path):
 		payload = {"page":pageNum}
-
 		r = requests.get(path + "posts", params=payload)
-
 		tree = BeautifulSoup(r.text)
-
 		postsOnThisPage = []
-
 		for post in tree.findAll("div", attrs={"class":"project_post_summary"}):
-
 			postsOnThisPage.append({
 				"post_id": self.get_post_id(post),
 				"post_time": self.get_post_time(post),
@@ -95,15 +94,12 @@ class KickUpdates:
 				"post_likes": self.get_post_likes(post),
 				"post_url": self.get_post_url(post)
 			})
-
 		return postsOnThisPage
 
 	def get_updates(self, tree, path):
 		paginationLinks = tree.find("div", attrs={"class":"pagination"})
-
 		if paginationLinks is None:
 			return self.get_update_content(1, path)
-
 		else:
 			allPaginationLinks = []
 			[allPaginationLinks.append(link["href"]) for link in paginationLinks.findAll("a")]
@@ -132,8 +128,8 @@ class KickComments:
 		return "\n".join([p.get_text() for p in tree.findAll("p")])
 
 	def get_comment_date(self, tree):
-		dateString = (tree.find("data")["data-value"])[:-6]
-		return KickHelper().convert_time(dateString)
+		dateString = tree.find("data")["data-value"]
+		return KickHelper().convert_time(dateString[:-6], dateString[-6:])
 
 	def get_comment_author(self, tree):
 		return tree.find("a", attrs={"class":"author"}).get_text()
@@ -152,7 +148,6 @@ class KickComments:
 
 	def get_comment_content(self, commentsArray):
 		tree = BeautifulSoup(commentsArray[0].strip())
-
 		return {
 			"comment_text": self.get_comment_text(tree),
 			"comment_date": self.get_comment_date(tree),
@@ -163,13 +158,10 @@ class KickComments:
 
 	def get_comments(self, tree, path, numComments):
 		numberOfClicksNeeded = (numComments / 50)
-
 		if numberOfClicksNeeded > int(numberOfClicksNeeded):
 			numberOfClicksNeeded + 1
-
 		driver = webdriver.PhantomJS()
 		driver.get(path + "comments")
-
 		try:
 			showMoreComments = driver.find_element_by_class_name("older_comments")
 			for x in range(int(numberOfClicksNeeded)):
@@ -178,17 +170,13 @@ class KickComments:
 				time.sleep(1)
 		except NoSuchElementException:
 			pass
-
 		allCommentObjects = driver.find_elements_by_class_name("NS_comments__comment")
 		allCommentsStructure = [self.get_comment_attributes(comment) for comment in allCommentObjects]
 		allComments = []
-
 		for idx, x in enumerate(allCommentsStructure):
 			print "processing #" + str(idx)
 			allComments.append(self.get_comment_content(x))
-
 		driver.close()
-
 		return allComments
 
 
@@ -221,7 +209,6 @@ class KickStats:
 
 	def get_pledge_amount(self, tree):
 		pledgeObject = tree.find("div", attrs={"id":"pledged"})
-
 		return {
 			"current_type": pledgeObject.data["data-currency"].lower(),
 			"pledge_amount": int(re.sub(r'(\.|,)', "", pledgeObject.get_text().strip()[1:]))
@@ -229,15 +216,11 @@ class KickStats:
 
 	def get_pledge_goal(self, tree):
 		contents = tree.find("span", attrs={"class":"no-code"})
-
 		pledge_goal = int(re.sub(r'(\.|,)', "", contents.get_text()[1:]))
-
 		classNames = re.search(re.compile(r'(money\s(\w{3})\sno-code)'), 
 			str(contents)).group()
-
 		if classNames is not None:
 			currency_type = classNames.split(" ")[1]
-
 		return {
 			"currency_type": currency_type.lower(),
 			"pledge_goal": pledge_goal
@@ -258,11 +241,9 @@ class KickStats:
 	def get_scrape_date(self):
 		return {
 			"date": time.strftime("%m/%d/%Y"),
-			"time": time.strftime("%H:%M:%S")
+			"time": time.strftime("%H:%M:%S"),
+			"zone": time.strftime("%z")
 		}
-
-
-
 
 	# get_status helper
 	def get_status_funding_deadline(self, tree):
